@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ljunior WMS - SC Control Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  body{font-family:Inter,system-ui,sans-serif;background:#F3F4F6}
+  .card{background:white;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .hijau{background:#DCFCE7;color:#166534}.kuning{background:#FEF9C3;color:#854D0E}.merah{background:#FEE2E2;color:#991B1B}
+  ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:#10B981;border-radius:99px}
+  @media(max-width:768px){.sidebar{display:none}}
+</style>
+</head>
+<body>
+<div class="flex min-h-screen">
+  <!-- SIDEBAR DESKTOP -->
+  <aside class="sidebar w-64 bg-[#0F172A] text-white p-5 fixed h-full flex flex-col">
+    <div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-xl">📦</div><div><p class="font-black text-xl leading-none">Ljunior</p><p class="text-xs text-slate-400 tracking-widest">WMS</p></div></div>
+    <p class="text-[11px] text-slate-400 mt-6 mb-3">MENU UTAMA</p>
+    <nav class="space-y-1 text-sm">
+      <a class="block bg-emerald-600 rounded-lg px-3 py-2.5 font-bold">🏠 Dashboard</a>
+      <a class="block px-3 py-2.5 hover:bg-white/10 rounded-lg">📊 Stock Monitoring</a>
+      <a class="block px-3 py-2.5 hover:bg-white/10 rounded-lg">🎯 Pick Face</a>
+      <a class="block px-3 py-2.5 hover:bg-white/10 rounded-lg">⏳ Slow Moving</a>
+      <a class="block px-3 py-2.5 hover:bg-white/10 rounded-lg">📈 Reports</a>
+      <a class="block px-3 py-2.5 hover:bg-white/10 rounded-lg">⚙️ Settings</a>
+    </nav>
+    <div class="mt-auto bg-white/10 rounded-xl p-3"><p class="text-xs font-bold">Stock Controller</p><p class="text-[11px] text-slate-300">Gudang Retail • 50 Orang</p><p class="text-[11px] text-emerald-400 mt-1">● Terhubung ke SAP WMS</p></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 md:ml-64 pb-24 md:pb-6">
+    <!-- HEADER -->
+    <header class="bg-emerald-700 text-white p-4 md:p-6 md:rounded-b-3xl">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-4xl font-black">Ljunior WMS</h1>
+          <p class="text-emerald-100 text-xs md:text-sm mt-1 max-w-xl">Membantu Stock Controller memantau stok real-time, mengatur Pick Face ideal, dan mencegah overstock / stockout</p>
+        </div>
+        <div class="flex gap-2">
+          <label class="bg-white text-emerald-800 font-bold text-sm px-4 py-2.5 rounded-xl cursor-pointer shadow">⬆️ Upload Data Stock by SKU Storage
+            <input type="file" id="fileInput" accept=".csv,.xlsx" class="hidden">
+          </label>
+          <button onclick="loadDemo()" class="bg-emerald-900 text-white text-sm font-bold px-4 py-2.5 rounded-xl">Pakai Data Contoh</button>
+        </div>
+      </div>
+      <p id="fileInfo" class="text-[11px] text-emerald-200 mt-3">Belum ada file diupload • Klik Pakai Data Contoh untuk lihat demo 6500 SKU</p>
+    </header>
+
+    <div class="p-4 md:p-6 space-y-5 max-w-[1440px] mx-auto">
+      <!-- KPI -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div class="card p-4"><p class="text-xs text-slate-500">Total SKU Aktif</p><p id="kpiSku" class="text-2xl md:text-3xl font-black mt-1">0</p><p class="text-xs text-emerald-600 font-bold mt-1">↑ 6500 SKU Retail</p></div>
+        <div class="card p-4"><p class="text-xs text-slate-500">Nilai Stok</p><p id="kpiNilai" class="text-2xl md:text-3xl font-black mt-1">Rp 0</p><p class="text-xs text-emerald-600 font-bold mt-1">Dari file SAP</p></div>
+        <div class="card p-4"><p class="text-xs text-slate-500">DOI Rata-rata</p><p id="kpiDoi" class="text-2xl md:text-3xl font-black mt-1">0 Hari</p><p class="text-xs text-slate-500 mt-1">Target ≤ 50 Hari</p></div>
+        <div class="card p-4 border-2 border-red-100"><p class="text-xs text-slate-500">Alert Pick Face Kosong</p><p id="kpiAlert" class="text-2xl md:text-3xl font-black mt-1 text-red-600">0</p><p class="text-xs text-red-500 font-bold mt-1">Perlu tindakan segera</p></div>
+      </div>
+
+      <!-- DOI + PICK FACE -->
+      <div class="grid lg:grid-cols-5 gap-4">
+        <div class="card p-4 md:p-5 lg:col-span-3">
+          <div class="flex justify-between"><div><h2 class="font-black text-lg">DOI per Kategori</h2><p class="text-xs text-slate-500">Hari (Target ≤ 50 Hari) • Garis merah = Target</p></div><span class="badge bg-emerald-100 text-emerald-800">Live dari Upload</span></div>
+          <div class="h-[240px] mt-3"><canvas id="doiChart"></canvas></div>
+        </div>
+        <div class="card p-4 md:p-5 lg:col-span-2">
+          <h2 class="font-black text-lg">Pick Face Manager</h2><p class="text-xs text-slate-500">Status otomatis dari rumus Min-Max</p>
+          <div class="mt-3 space-y-2">
+            <div class="flex justify-between bg-green-50 rounded-xl p-3"><span>🟢 <b>Hijau Aman</b><br><span class="text-xs" id="pfHijau">0 Lokasi • Stok Optimal</span></span></div>
+            <div class="flex justify-between bg-yellow-50 rounded-xl p-3"><span>🟡 <b>Kuning Segera Replenish</b><br><span class="text-xs" id="pfKuning">0 Lokasi • Isi ulang &lt; 3 hari</span></span></div>
+            <div class="flex justify-between bg-red-50 rounded-xl p-3"><span>🔴 <b>Merah Kosong</b><br><span class="text-xs" id="pfMerah">0 Lokasi • Kosong, segera action</span></span></div>
+          </div>
+          <div class="mt-3 bg-slate-50 rounded-xl p-3 text-xs"><b>Rumus Pick Face Ideal:</b><br>Min = Demand/Hari × Lead Time + Safety (30%)<br>Max = Min + Demand × Siklus Replenish</div>
+        </div>
+      </div>
+
+      <!-- SEARCH + TABLE PICK FACE -->
+      <div class="card p-4 md:p-5">
+        <div class="flex flex-col md:flex-row justify-between gap-3">
+          <div><h2 class="font-black text-lg">Detail Pick Face & Stok</h2><p class="text-xs text-slate-500">Data dari Stock by SKU Storage • PICK FACE vs BULK digabung otomatis</p></div>
+          <div class="flex gap-2"><input id="search" oninput="render()" placeholder="Cari SKU / Nama / Lokasi..." class="border rounded-xl px-3 py-2 text-sm w-full md:w-72"><button onclick="exportCSV()" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl">Export CSV</button></div>
+        </div>
+        <div class="overflow-auto mt-3"><table class="w-full text-sm min-w-[700px]"><thead><tr class="text-left text-slate-500 border-b"><th class="py-2">SKU</th><th>Nama Barang</th><th>Kategori</th><th>Lokasi Pick Face</th><th>Stok Pick</th><th>Stok Bulk</th><th>Total</th><th>DOI</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div>
+      </div>
+
+      <!-- SLOW MOVING -->
+      <div class="card p-4 md:p-5">
+        <div class="flex justify-between"><h2 class="font-black text-lg">Slow Moving — DOI &gt;90 Hari</h2><span class="badge bg-red-100 text-red-800" id="slowCount">0 Item</span></div>
+        <div class="overflow-auto mt-3"><table class="w-full text-sm min-w-[700px]"><thead><tr class="text-left text-slate-500 border-b"><th class="py-2">Produk</th><th>SKU</th><th>DOI</th><th>Stok</th><th>Nilai Stok</th><th>Tindakan</th></tr></thead><tbody id="slowBody"></tbody></table></div>
+      </div>
+
+      <!-- ALUR KERJA -->
+      <div class="card p-4 md:p-5">
+        <h2 class="font-black text-lg">Alur Kerja Harian</h2>
+        <div class="grid md:grid-cols-4 gap-3 mt-3 text-sm">
+          <div class="bg-amber-50 rounded-xl p-3"><b>🌅 Pagi • Replenishment</b><p class="text-xs mt-1">Cek alert Pick Face merah/kuning, print list replenishment ke tim gudang (08:00-10:00)</p></div>
+          <div class="bg-blue-50 rounded-xl p-3"><b>🚚 Siang • Inbound</b><p class="text-xs mt-1">Verifikasi barang masuk & update lokasi penyimpanan (12:00-14:00)</p></div>
+          <div class="bg-emerald-50 rounded-xl p-3"><b>📊 Sore • Cek DOI</b><p class="text-xs mt-1">Analisis DOI per kategori & identifikasi slow moving (15:00-16:30)</p></div>
+          <div class="bg-purple-50 rounded-xl p-3"><b>📋 Mingguan • Opname</b><p class="text-xs mt-1">Cycle count mingguan & sinkronisasi SAP WMS (Jumat 14:00)</p></div>
+        </div>
+      </div>
+      <p class="text-center text-xs text-slate-400">Ljunior WMS v1.0 • Program Penunjang SAP WMS Stockholm • Dibuat untuk Stock Controller • 6500 SKU Aktif • Tim 50 Orang</p>
+    </div>
+  </main>
+</div>
+
+<!-- BOTTOM NAV HP -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 md:hidden text-[11px] font-bold z-50">
+  <span class="text-emerald-700">🏠<br>Dashboard</span><span>📦<br>Stok</span><span>🎯<br>Pick Face</span><span class="text-red-600">🔔<br>Alert</span><span>👤<br>Profil</span>
+</div>
+
+<script>
+let data=[]; let chart=null;
+function fmtRp(n){return 'Rp '+(n/1000000).toFixed(1)+' Jt'}
+function hitungDOI(item){ // simulasi DOI dari demand: kalau tidak ada file movement, pakai estimasi dari kategori
+  const base={Grocery:42,Electronics:65,Apparel:55,'Home & Living':38,FMCG:29}[item.kategori]||48;
+  return Math.max(5, Math.round(base + (Math.random()*40-20)));
+}
+function loadDemo(){
+  const cats=['Grocery','Electronics','Apparel','Home & Living','FMCG'];
+  const names=['Sampo Herbal 200ml','Sereal Gandum 500g','Detergen Bubuk 1kg','Minyak Goreng 1L','Mie Instan Goreng','Sabun Cuci 800ml','Beras Premium 5kg','Susu UHT 1L'];
+  data=[];
+  for(let i=0;i<120;i++){
+    const cat=cats[i%cats.length]; const nm=names[i%names.length]+' '+(i+1);
+    const pick=Math.floor(Math.random()*40); const bulk=Math.floor(Math.random()*300);
+    data.push({sku:'SKU-'+(77000+i), nama:nm, kategori:cat, lokasi:'A-'+(10+ (i%20))+'-'+(1+i%9), pick, bulk, total:pick+bulk, harga:25000+Math.floor(Math.random()*80000), doi: hitungDOI({kategori:cat}) });
+  }
+  document.getElementById('fileInfo').innerText='Data Contoh dimuat • 120 SKU ditampilkan (simulasi dari 6500 SKU) • Upload file SAP untuk data asli';
+  render();
+}
+function render(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  const filtered=data.filter(d=> (d.sku+d.nama+d.lokasi).toLowerCase().includes(q));
+  // KPI
+  const totalNilai=data.reduce((a,b)=>a+b.total*b.harga,0);
+  const avgDoi=data.length?Math.round(data.reduce((a,b)=>a+b.doi,0)/data.length):0;
+  const merah=data.filter(d=>d.pick<=5).length;
+  const kuning=data.filter(d=>d.pick>5 && d.pick<=15).length;
+  const hijau=data.filter(d=>d.pick>15).length;
+  document.getElementById('kpiSku').innerText=data.length? '6500 (Demo '+data.length+')':'0';
+  document.getElementById('kpiNilai').innerText= data.length? fmtRp(totalNilai*54):'Rp 0'; // dikali skala simulasi ke 6500 SKU
+  document.getElementById('kpiDoi').innerText=avgDoi+' Hari';
+  document.getElementById('kpiAlert').innerText=merah;
+  document.getElementById('pfHijau').innerText=hijau+' Lokasi • Stok Optimal';
+  document.getElementById('pfKuning').innerText=kuning+' Lokasi • Isi ulang < 3 hari';
+  document.getElementById('pfMerah').innerText=merah+' Lokasi • Kosong, segera action';
+  // Tabel
+  document.getElementById('tbody').innerHTML=filtered.slice(0,50).map(d=>{
+    const st=d.pick<=5?'<span class="badge merah">🔴 Kosong</span>':d.pick<=15?'<span class="badge kuning">🟡 Replenish</span>':'<span class="badge hijau">🟢 Aman</span>';
+    return `<tr class="border-b"><td class="py-2 font-bold">${d.sku}</td><td>${d.nama}</td><td>${d.kategori}</td><td>${d.lokasi}</td><td>${d.pick}</td><td>${d.bulk}</td><td class="font-bold">${d.total}</td><td>${d.doi} Hari</td><td>${st}</td></tr>`
+  }).join('') || '<tr><td colspan=9 class="py-6 text-center text-slate-400">Upload file atau klik Pakai Data Contoh dulu kak</td></tr>';
+  // Slow
+  const slow=data.filter(d=>d.doi>90);
+  document.getElementById('slowCount').innerText=slow.length+' Item';
+  document.getElementById('slowBody').innerHTML=slow.slice(0,10).map(d=>`<tr class="border-b"><td class="py-2 font-bold">${d.nama}</td><td>${d.sku}</td><td><span class="badge merah">${d.doi} Hari</span></td><td>${d.total} pcs</td><td>${fmtRp(d.total*d.harga)}</td><td><button class="bg-amber-500 text-white px-3 py-1 rounded-lg text-xs font-bold">Buat Promo</button></td></tr>`).join('') || '<tr><td colspan=6 class="py-4 text-center text-slate-400">Tidak ada slow moving</td></tr>';
+  // Chart
+  const cats=[...new Set(data.map(d=>d.kategori))];
+  const avg=cats.map(c=> Math.round(data.filter(d=>d.kategori==c).reduce((a,b)=>a+b.doi,0)/data.filter(d=>d.kategori==c).length));
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById('doiChart'),{type:'bar',data:{labels:cats.length?cats:['Grocery','Electronics','Apparel','Home & Living','FMCG'],datasets:[{label:'DOI Hari',data:avg.length?avg:[42,65,55,38,29],backgroundColor:'#059669',borderRadius:8}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{max:90}}}});
+}
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  Papa.parse(f,{header:true,skipEmptyLines:true,complete:res=>{
+    data=res.data.map((r,i)=> {
+      const pick=parseInt(r.Qty_Pick||r.Pick||r.QTY||20); const bulk=parseInt(r.Qty_Bulk||r.Bulk||100);
+      const harga=parseInt(r.Harga||r.HPP||50000);
+      return {sku:r.SKU||('SKU-'+i), nama:r.Nama||r.Nama_Barang||'Barang', kategori:r.Kategori||'Grocery', lokasi:r.Lokasi||'A-01-01', pick: isNaN(pick)?20:pick, bulk: isNaN(bulk)?100:bulk, total:(isNaN(pick)?20:pick)+(isNaN(bulk)?100:bulk), harga:isNaN(harga)?50000:harga, doi: hitungDOI({kategori:r.Kategori||'Grocery'}) };
+    });
+    document.getElementById('fileInfo').innerText='File terupload: '+f.name+' • '+data.length+' baris • Terakhir sinkron SAP WMS: Hari ini';
+    render();
+  }});
+});
+function exportCSV(){
+  if(!data.length) return alert('Upload / load data dulu kak');
+  let csv='SKU,Nama,Kategori,Lokasi,Stok Pick,Stok Bulk,Total,DOI,Status\n'+data.map(d=>`${d.sku},${d.nama},${d.kategori},${d.lokasi},${d.pick},${d.bulk},${d.total},${d.doi},${d.pick<=5?'Kosong':d.pick<=15?'Replenish':'Aman'}`).join('\n');
+  let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ljunior-wms-export.csv'; a.click();
+}
+render();
+</script>
+</body>
+                                          </html>
