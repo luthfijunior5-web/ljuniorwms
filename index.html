@@ -10,16 +10,21 @@
 <style>
   body{font-family:Inter,system-ui,sans-serif;background:#F3F4F6}
   .card{background:white;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
-  .badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
   .hijau{background:#DCFCE7;color:#166534}.kuning{background:#FEF9C3;color:#854D0E}.merah{background:#FEE2E2;color:#991B1B}
   ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:#10B981;border-radius:99px}
-  @media(max-width:768px){.sidebar{display:none}}
+  /* FIX HP v1.1 - Sidebar hilang di HP */
+  @media(max-width:900px){
+    .sidebar{display:none !important}
+    main{margin-left:0 !important}
+    header{padding:16px !important}
+  }
 </style>
 </head>
 <body>
 <div class="flex min-h-screen">
-  <!-- SIDEBAR DESKTOP -->
-  <aside class="sidebar w-64 bg-[#0F172A] text-white p-5 fixed h-full flex flex-col">
+  <!-- SIDEBAR DESKTOP - Hanya muncul di Laptop -->
+  <aside class="sidebar w-64 bg-[#0F172A] text-white p-5 fixed h-full hidden md:flex flex-col">
     <div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-xl">📦</div><div><p class="font-black text-xl leading-none">Ljunior</p><p class="text-xs text-slate-400 tracking-widest">WMS</p></div></div>
     <p class="text-[11px] text-slate-400 mt-6 mb-3">MENU UTAMA</p>
     <nav class="space-y-1 text-sm">
@@ -34,7 +39,7 @@
   </aside>
 
   <!-- MAIN -->
-  <main class="flex-1 md:ml-64 pb-24 md:pb-6">
+  <main class="flex-1 md:ml-64 pb-24 md:pb-6 w-full">
     <!-- HEADER -->
     <header class="bg-emerald-700 text-white p-4 md:p-6 md:rounded-b-3xl">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -42,11 +47,11 @@
           <h1 class="text-2xl md:text-4xl font-black">Ljunior WMS</h1>
           <p class="text-emerald-100 text-xs md:text-sm mt-1 max-w-xl">Membantu Stock Controller memantau stok real-time, mengatur Pick Face ideal, dan mencegah overstock / stockout</p>
         </div>
-        <div class="flex gap-2">
-          <label class="bg-white text-emerald-800 font-bold text-sm px-4 py-2.5 rounded-xl cursor-pointer shadow">⬆️ Upload Data Stock by SKU Storage
-            <input type="file" id="fileInput" accept=".csv,.xlsx" class="hidden">
+        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <label class="bg-white text-emerald-800 font-bold text-sm px-4 py-3 rounded-xl cursor-pointer shadow text-center">⬆️ Upload Data Stock by SKU Storage
+            <input type="file" id="fileInput" accept=".csv" class="hidden">
           </label>
-          <button onclick="loadDemo()" class="bg-emerald-900 text-white text-sm font-bold px-4 py-2.5 rounded-xl">Pakai Data Contoh</button>
+          <button onclick="loadDemo()" class="bg-emerald-900 text-white text-sm font-bold px-4 py-3 rounded-xl">Pakai Data Contoh</button>
         </div>
       </div>
       <p id="fileInfo" class="text-[11px] text-emerald-200 mt-3">Belum ada file diupload • Klik Pakai Data Contoh untuk lihat demo 6500 SKU</p>
@@ -64,7 +69,7 @@
       <!-- DOI + PICK FACE -->
       <div class="grid lg:grid-cols-5 gap-4">
         <div class="card p-4 md:p-5 lg:col-span-3">
-          <div class="flex justify-between"><div><h2 class="font-black text-lg">DOI per Kategori</h2><p class="text-xs text-slate-500">Hari (Target ≤ 50 Hari) • Garis merah = Target</p></div><span class="badge bg-emerald-100 text-emerald-800">Live dari Upload</span></div>
+          <div class="flex justify-between gap-2"><div><h2 class="font-black text-lg">DOI per Kategori</h2><p class="text-xs text-slate-500">Hari (Target ≤ 50 Hari) • Garis merah = Target</p></div><span class="badge bg-emerald-100 text-emerald-800 h-fit">Live dari Upload</span></div>
           <div class="h-[240px] mt-3"><canvas id="doiChart"></canvas></div>
         </div>
         <div class="card p-4 md:p-5 lg:col-span-2">
@@ -82,7 +87,7 @@
       <div class="card p-4 md:p-5">
         <div class="flex flex-col md:flex-row justify-between gap-3">
           <div><h2 class="font-black text-lg">Detail Pick Face & Stok</h2><p class="text-xs text-slate-500">Data dari Stock by SKU Storage • PICK FACE vs BULK digabung otomatis</p></div>
-          <div class="flex gap-2"><input id="search" oninput="render()" placeholder="Cari SKU / Nama / Lokasi..." class="border rounded-xl px-3 py-2 text-sm w-full md:w-72"><button onclick="exportCSV()" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl">Export CSV</button></div>
+          <div class="flex gap-2"><input id="search" oninput="render()" placeholder="Cari SKU / Nama / Lokasi..." class="border rounded-xl px-3 py-2 text-sm w-full md:w-72"><button onclick="exportCSV()" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl whitespace-nowrap">Export CSV</button></div>
         </div>
         <div class="overflow-auto mt-3"><table class="w-full text-sm min-w-[700px]"><thead><tr class="text-left text-slate-500 border-b"><th class="py-2">SKU</th><th>Nama Barang</th><th>Kategori</th><th>Lokasi Pick Face</th><th>Stok Pick</th><th>Stok Bulk</th><th>Total</th><th>DOI</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div>
       </div>
@@ -103,7 +108,7 @@
           <div class="bg-purple-50 rounded-xl p-3"><b>📋 Mingguan • Opname</b><p class="text-xs mt-1">Cycle count mingguan & sinkronisasi SAP WMS (Jumat 14:00)</p></div>
         </div>
       </div>
-      <p class="text-center text-xs text-slate-400">Ljunior WMS v1.0 • Program Penunjang SAP WMS Stockholm • Dibuat untuk Stock Controller • 6500 SKU Aktif • Tim 50 Orang</p>
+      <p class="text-center text-xs text-slate-400">Ljunior WMS v1.1 • Program Penunjang SAP WMS Stockholm • Dibuat untuk Stock Controller • 6500 SKU Aktif • Tim 50 Orang</p>
     </div>
   </main>
 </div>
@@ -115,8 +120,12 @@
 
 <script>
 let data=[]; let chart=null;
-function fmtRp(n){return 'Rp '+(n/1000000).toFixed(1)+' Jt'}
-function hitungDOI(item){ // simulasi DOI dari demand: kalau tidak ada file movement, pakai estimasi dari kategori
+function fmtRp(n){
+  if(n>=1000000000) return 'Rp '+(n/1000000000).toFixed(2)+' M';
+  if(n>=1000000) return 'Rp '+(n/1000000).toFixed(1)+' Jt';
+  return 'Rp '+n.toLocaleString('id-ID');
+}
+function hitungDOI(item){
   const base={Grocery:42,Electronics:65,Apparel:55,'Home & Living':38,FMCG:29}[item.kategori]||48;
   return Math.max(5, Math.round(base + (Math.random()*40-20)));
 }
@@ -127,7 +136,7 @@ function loadDemo(){
   for(let i=0;i<120;i++){
     const cat=cats[i%cats.length]; const nm=names[i%names.length]+' '+(i+1);
     const pick=Math.floor(Math.random()*40); const bulk=Math.floor(Math.random()*300);
-    data.push({sku:'SKU-'+(77000+i), nama:nm, kategori:cat, lokasi:'A-'+(10+ (i%20))+'-'+(1+i%9), pick, bulk, total:pick+bulk, harga:25000+Math.floor(Math.random()*80000), doi: hitungDOI({kategori:cat}) });
+    data.push({sku:'SKU-'+(77000+i), nama:nm, kategori:cat, lokasi:'A-'+(10+(i%20))+'-'+(1+i%9), pick, bulk, total:pick+bulk, harga:25000+Math.floor(Math.random()*80000), doi: hitungDOI({kategori:cat}) });
   }
   document.getElementById('fileInfo').innerText='Data Contoh dimuat • 120 SKU ditampilkan (simulasi dari 6500 SKU) • Upload file SAP untuk data asli';
   render();
@@ -135,29 +144,25 @@ function loadDemo(){
 function render(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const filtered=data.filter(d=> (d.sku+d.nama+d.lokasi).toLowerCase().includes(q));
-  // KPI
   const totalNilai=data.reduce((a,b)=>a+b.total*b.harga,0);
   const avgDoi=data.length?Math.round(data.reduce((a,b)=>a+b.doi,0)/data.length):0;
   const merah=data.filter(d=>d.pick<=5).length;
   const kuning=data.filter(d=>d.pick>5 && d.pick<=15).length;
   const hijau=data.filter(d=>d.pick>15).length;
   document.getElementById('kpiSku').innerText=data.length? '6500 (Demo '+data.length+')':'0';
-  document.getElementById('kpiNilai').innerText= data.length? fmtRp(totalNilai*54):'Rp 0'; // dikali skala simulasi ke 6500 SKU
+  document.getElementById('kpiNilai').innerText= data.length? fmtRp(totalNilai):'Rp 0';
   document.getElementById('kpiDoi').innerText=avgDoi+' Hari';
   document.getElementById('kpiAlert').innerText=merah;
   document.getElementById('pfHijau').innerText=hijau+' Lokasi • Stok Optimal';
   document.getElementById('pfKuning').innerText=kuning+' Lokasi • Isi ulang < 3 hari';
   document.getElementById('pfMerah').innerText=merah+' Lokasi • Kosong, segera action';
-  // Tabel
   document.getElementById('tbody').innerHTML=filtered.slice(0,50).map(d=>{
     const st=d.pick<=5?'<span class="badge merah">🔴 Kosong</span>':d.pick<=15?'<span class="badge kuning">🟡 Replenish</span>':'<span class="badge hijau">🟢 Aman</span>';
     return `<tr class="border-b"><td class="py-2 font-bold">${d.sku}</td><td>${d.nama}</td><td>${d.kategori}</td><td>${d.lokasi}</td><td>${d.pick}</td><td>${d.bulk}</td><td class="font-bold">${d.total}</td><td>${d.doi} Hari</td><td>${st}</td></tr>`
   }).join('') || '<tr><td colspan=9 class="py-6 text-center text-slate-400">Upload file atau klik Pakai Data Contoh dulu kak</td></tr>';
-  // Slow
   const slow=data.filter(d=>d.doi>90);
   document.getElementById('slowCount').innerText=slow.length+' Item';
   document.getElementById('slowBody').innerHTML=slow.slice(0,10).map(d=>`<tr class="border-b"><td class="py-2 font-bold">${d.nama}</td><td>${d.sku}</td><td><span class="badge merah">${d.doi} Hari</span></td><td>${d.total} pcs</td><td>${fmtRp(d.total*d.harga)}</td><td><button class="bg-amber-500 text-white px-3 py-1 rounded-lg text-xs font-bold">Buat Promo</button></td></tr>`).join('') || '<tr><td colspan=6 class="py-4 text-center text-slate-400">Tidak ada slow moving</td></tr>';
-  // Chart
   const cats=[...new Set(data.map(d=>d.kategori))];
   const avg=cats.map(c=> Math.round(data.filter(d=>d.kategori==c).reduce((a,b)=>a+b.doi,0)/data.filter(d=>d.kategori==c).length));
   if(chart) chart.destroy();
@@ -183,4 +188,4 @@ function exportCSV(){
 render();
 </script>
 </body>
-                                          </html>
+</html>
